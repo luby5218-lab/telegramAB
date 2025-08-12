@@ -50,7 +50,8 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"{A}A{B}B")
 
 if __name__ == "__main__":
-    TOKEN = "8222440240:AAGEBLiI8tNpM2MQxIj1YAMTLrwi9XYQpI0"
+    import os
+    TOKEN = os.getenv("TOKEN")
 
     application = Application.builder().token(TOKEN).build()
 
