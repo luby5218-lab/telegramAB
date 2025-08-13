@@ -5,6 +5,7 @@ import os
 from flask import Flask, request
 from keep_alive import keep_alive  # 保活
 import threading
+import asyncio
 
 VERSION = "v1.0.3"
 user_games = {}
@@ -89,9 +90,15 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    application.bot.set_webhook(f"{RENDER_URL}/webhook")
-
-    # 啟動保活（新執行緒）
+    # 啟動保活（可選）
     threading.Thread(target=keep_alive, daemon=True).start()
 
+    async def run():
+        # 設置 webhook
+        await application.bot.set_webhook(f"{RENDER_URL}/webhook")
+        print(f"Webhook set to {RENDER_URL}/webhook")
+
+    asyncio.run(run())
+
+    # 啟動 Flask
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
