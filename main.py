@@ -5,7 +5,7 @@ import os
 from flask import Flask
 import threading
 
-VERSION = "v1.0.2"  # 版本號
+VERSION = "v1.0.3"  # 版本號
 
 # 用來存不同用戶的遊戲答案
 user_games = {}
@@ -32,6 +32,7 @@ async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     answer = user_games[user_id]
     await update.message.reply_text(f"It's {answer}\ntry harder dog")
+    del user_games[user_id]  # 清除遊戲
 
 # 處理使用者輸入的猜測
 async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
