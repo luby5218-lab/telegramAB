@@ -7,6 +7,7 @@ from flask import Flask, request as flask_request
 from keep_alive import keep_alive  # 保活
 import threading
 import asyncio
+from httpx import Timeout
 
 VERSION = "v1.0.4"
 user_games = {}
@@ -87,7 +88,8 @@ if __name__ == "__main__":
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
-    request = HTTPXRequest(connection_pool_size=50)
+    timeout = Timeout(connect=10.0, read=30.0)
+    request = HTTPXRequest(connection_pool_size=20, timeout = timeout)
     application = Application.builder().token(TOKEN).request(request).build()
     bot = application.bot
 
@@ -101,4 +103,4 @@ if __name__ == "__main__":
     loop.run_until_complete(bot.set_webhook(f"{RENDER_URL}/webhook"))
     loop.run_until_complete(application.initialize())
 
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), threaded=True)
