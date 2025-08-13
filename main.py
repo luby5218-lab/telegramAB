@@ -75,8 +75,9 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.update_queue.put_nowait(update)
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, application.bot)
+    asyncio.run_coroutine_threadsafe(application.process_update(update), application.loop)
     return "OK"
 
 async def main():
