@@ -5,7 +5,7 @@ import os
 from flask import Flask
 import threading
 
-VERSION = "v1.0.0"  # 版本號
+VERSION = "v1.0.1"  # 版本號
 
 # 用來存不同用戶的遊戲答案
 user_games = {}
@@ -26,6 +26,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = generate_answer()
     user_games[user_id] = answer
     await update.message.reply_text("1234 ?A?B\nGuess")
+
+# /quit
+async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"It's {answer}\ntry harder dog")
 
 # 處理使用者輸入的猜測
 async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -75,6 +79,7 @@ def run_bot():
     # 指令處理
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("version", version))
+    application.add_handler(CommandHandler("quit", quit))
 
     # 處理文字
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
