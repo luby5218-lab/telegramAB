@@ -1,5 +1,6 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.request import HTTPXRequest
 import random
 import os
 from flask import Flask, request
@@ -85,7 +86,9 @@ async def main():
     RENDER_URL = os.getenv("RENDER_URL")
 
     global application, bot
-    application = Application.builder().token(TOKEN).build()
+
+    request = HTTPXRequest(connection_pool_size=50)  # 原本只有 10
+    application = Application.builder().token(TOKEN).request(request).build()
     bot = application.bot
 
     application.add_handler(CommandHandler("start", start))
