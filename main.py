@@ -68,17 +68,17 @@ async def version(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Flask server
 app = Flask(__name__)
 application = None
+bot = None
 
 @app.route("/")
 def home():
     return "Bot is running!"
 
 @app.route("/webhook", methods=["POST"])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, application.bot)
-    asyncio.run_coroutine_threadsafe(application.process_update(update), application.loop)
-    return "OK"
+async def webhook():
+    update = telegram.Update.de_json(request.get_json(force=True), bot)
+    await application.process_update(update)
+    return "ok"
 
 async def main():
     TOKEN = os.getenv("TOKEN")
@@ -86,24 +86,18 @@ async def main():
 
     global application
     application = Application.builder().token(TOKEN).build()
+    bot = application.bot
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("quit", quit))
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    await application.bot.set_webhook(f"{RENDER_URL}/webhook")
+    await bot.set_webhook(f"{RENDER_URL}/webhook")
     await application.initialize()
-    await application.start()
-    print(f"Webhook set and application started: {RENDER_URL}/webhook")
-
+    print(f"Webhook set: {RENDER_URL}/webhook")
+    
 if __name__ == "__main__":
-    threading.Thread(target=keep_alive, daemon=True).start()
-
-    async def runner():
-        await main()  # 啟動 application（背景跑）
-    
-    threading.Thread(target=lambda: asyncio.run(runner()), daemon=True).start()
-    
-    # 最後啟動 Flask（會阻塞在這裡）
+    keep_alive()  # 啟動保活
+    asyncio.run(main())
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
