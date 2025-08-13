@@ -76,7 +76,7 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
-    update = telegram.Update.de_json(request.get_json(force=True), bot)
+    update = Update.de_json(request.get_json(force=True), bot)
     await application.process_update(update)
     return "ok"
 
@@ -84,7 +84,7 @@ async def main():
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
-    global application
+    global application, bot
     application = Application.builder().token(TOKEN).build()
     bot = application.bot
 
