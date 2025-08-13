@@ -88,7 +88,7 @@ if __name__ == "__main__":
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
-    timeout = Timeout(connect=10.0, read=30.0)
+    timeout = Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
     request = HTTPXRequest(connection_pool_size=20, timeout = timeout)
     application = Application.builder().token(TOKEN).request(request).build()
     bot = application.bot
