@@ -3,12 +3,12 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from telegram.request import HTTPXRequest
 import random
 import os
-from flask import Flask, request
+from flask import Flask, request as flask_request
 from keep_alive import keep_alive  # 保活
 import threading
 import asyncio
 
-VERSION = "v1.0.3"
+VERSION = "v1.0.4"
 user_games = {}
 
 # 產生隨機不重複的四位數
@@ -77,7 +77,7 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 async def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
+    update = Update.de_json(flask_request.get_json(force=True), bot)
     await application.process_update(update)
     return "ok"
 
