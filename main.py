@@ -81,13 +81,13 @@ async def webhook():
     await application.process_update(update)
     return "ok"
 
-async def main():
+if __name__ == "__main__":
+    keep_alive()
+
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
-    global application, bot
-
-    request = HTTPXRequest(connection_pool_size=50)  # 原本只有 10
+    request = HTTPXRequest(connection_pool_size=50)
     application = Application.builder().token(TOKEN).request(request).build()
     bot = application.bot
 
@@ -96,11 +96,9 @@ async def main():
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    await bot.set_webhook(f"{RENDER_URL}/webhook")
-    await application.initialize()
-    print(f"Webhook set: {RENDER_URL}/webhook")
-    
-if __name__ == "__main__":
-    keep_alive()  # 啟動保活
-    asyncio.run(main())
+    # 直接用 loop 啟動 webhook
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(bot.set_webhook(f"{RENDER_URL}/webhook"))
+    loop.run_until_complete(application.initialize())
+
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
