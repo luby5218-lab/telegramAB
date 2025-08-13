@@ -1,6 +1,11 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import random
+import os
+from flask import Flask
+import threading
+
+VERSION = "v1.0.0"  # 版本號
 
 # 用來存不同用戶的遊戲答案
 user_games = {}
@@ -15,7 +20,7 @@ def generate_answer():
         digits.remove(a)
     return ans
 
-# /start 
+# /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     answer = generate_answer()
@@ -49,17 +54,34 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"{A}A{B}B")
 
-if __name__ == "__main__":
-    import os
-    TOKEN = os.getenv("TOKEN")
+# /version
+async def version(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Current bot version: {VERSION}")
 
+# Flask server for Render ping
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is running!"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+def run_bot():
+    TOKEN = os.getenv("TOKEN")
     application = Application.builder().token(TOKEN).build()
 
-    # /start 指令
+    # 指令處理
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("version", version))
 
-    # 處理文字輸入
+    # 處理文字
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
     print("Telegram Bot started!", flush=True)
     application.run_polling()
+
+if __name__ == "__main__":
+    threading.Thread(target=run_flask).start()
+    run_bot()
