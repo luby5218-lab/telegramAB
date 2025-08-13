@@ -79,10 +79,11 @@ def webhook():
     application.update_queue.put_nowait(update)
     return "OK"
 
-if __name__ == "__main__":
+async def main():
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
+    global application
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
@@ -90,15 +91,18 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    # 啟動保活（可選）
+    await application.bot.set_webhook(f"{RENDER_URL}/webhook")
+    await application.initialize()
+    await application.start()
+    print(f"Webhook set and application started: {RENDER_URL}/webhook")
+
+if __name__ == "__main__":
     threading.Thread(target=keep_alive, daemon=True).start()
 
-    async def run():
-        # 設置 webhook
-        await application.bot.set_webhook(f"{RENDER_URL}/webhook")
-        print(f"Webhook set to {RENDER_URL}/webhook")
-
-    asyncio.run(run())
-
-    # 啟動 Flask
+    async def runner():
+        await main()  # 啟動 application（背景跑）
+    
+    threading.Thread(target=lambda: asyncio.run(runner()), daemon=True).start()
+    
+    # 最後啟動 Flask（會阻塞在這裡）
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
