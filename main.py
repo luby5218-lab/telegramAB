@@ -29,6 +29,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # /quit
 async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    answer = user_games[user_id]
     await update.message.reply_text(f"It's {answer}\ntry harder dog")
 
 # 處理使用者輸入的猜測
