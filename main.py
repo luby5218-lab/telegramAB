@@ -9,7 +9,7 @@ import threading
 import asyncio
 from httpx import Timeout
 
-VERSION = "v1.0.4"
+VERSION = "v1.0.5"
 user_games = {}
 
 # 產生隨機不重複的四位數
@@ -37,7 +37,7 @@ async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"It's {answer}\ntry harder dog")
         del user_games[user_id]
     else:
-        await update.message.reply_text("dog input /start first")
+        await update.message.reply_text("Cannot /quit before you even /start")
 
 # 猜測邏輯
 async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -53,6 +53,12 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not guess.isdigit() or len(guess) != 4:
         await update.message.reply_text("4 digits dog")
         return
+
+    for i in range(3):
+        for j in range(i+1, 4):
+            if guess[i] == guess[j]:
+                await update.message.reply_text("dog that's cheating")
+                return
 
     A = sum(1 for i in range(4) if answer[i] == guess[i])
     B = sum(1 for i in range(4) for j in range(4) if i != j and answer[i] == guess[j])
@@ -83,24 +89,28 @@ async def webhook():
     return "ok"
 
 if __name__ == "__main__":
-    keep_alive()
+    keep_alive()  # 啟動定時 ping
 
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
+    # 加大連線池 & 設置 timeout
     timeout = Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
-    request = HTTPXRequest(connection_pool_size=20, timeout = timeout)
+    request = HTTPXRequest(connection_pool_size=50, pool_timeout=30.0, timeout=timeout)
+
     application = Application.builder().token(TOKEN).request(request).build()
     bot = application.bot
 
+    # 註冊指令
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("quit", quit))
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    # 直接用 loop 啟動 webhook
+    # 設定 webhook
     loop = asyncio.get_event_loop()
     loop.run_until_complete(bot.set_webhook(f"{RENDER_URL}/webhook"))
     loop.run_until_complete(application.initialize())
 
+    # 啟動 Flask
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), threaded=True)
