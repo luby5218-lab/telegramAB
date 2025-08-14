@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     # 加大連線池 & 設置 timeout
     timeout = Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
-    request = HTTPXRequest(connection_pool_size=50, pool_timeout=30.0, timeout=timeout)
+    request = HTTPXRequest(connection_pool_size=50, pool_timeout=30.0, read_timeout=30.0, write_timeout=10.0, connect_timeout=10.0)
 
     application = Application.builder().token(TOKEN).request(request).build()
     bot = application.bot
