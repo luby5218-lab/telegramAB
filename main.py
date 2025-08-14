@@ -5,8 +5,6 @@ import random
 import os
 from flask import Flask, request as flask_request
 from keep_alive import keep_alive  # 保活
-import threading
-import asyncio
 from httpx import Timeout
 
 VERSION = "v1.0.5"
@@ -73,44 +71,33 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def version(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Current bot version: {VERSION}")
 
-# Flask server
+# Flask server (只做 keep alive 用)
 app = Flask(__name__)
-application = None
-bot = None
 
 @app.route("/")
 def home():
     return "Bot is running!"
 
-@app.route("/webhook", methods=["POST"])
-async def webhook():
-    update = Update.de_json(flask_request.get_json(force=True), bot)
-    await application.process_update(update)
-    return "ok"
-
 if __name__ == "__main__":
-    keep_alive()  # 啟動定時 ping
+    keep_alive()
 
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
-    # 加大連線池 & 設置 timeout
     timeout = Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
-    request = HTTPXRequest(connection_pool_size=50, pool_timeout=30.0, read_timeout=30.0, write_timeout=10.0, connect_timeout=10.0)
+    request = HTTPXRequest(connection_pool_size=50, pool_timeout=30.0)
 
     application = Application.builder().token(TOKEN).request(request).build()
-    bot = application.bot
 
-    # 註冊指令
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("quit", quit))
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    # 設定 webhook
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(bot.set_webhook(f"{RENDER_URL}/webhook"))
-    loop.run_until_complete(application.initialize())
-
-    # 啟動 Flask
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), threaded=True)
+    # 直接啟動 webhook
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        url_path="",
+        webhook_url=f"{RENDER_URL}",
+    )
