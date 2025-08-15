@@ -3,13 +3,13 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from telegram.request import HTTPXRequest
 import random
 import os
-from keep_alive import keep_alive  # 保活
+from keep_alive import keep_alive
 from httpx import Timeout
 
 VERSION = "v1.0.5"
 user_games = {}
 
-# 隨機產生 4 位不重複數字
+# answer generating
 def generate_answer():
     digits = list(range(10))
     ans = "".join(str(digits.pop(random.randrange(len(digits)))) for _ in range(4))
@@ -31,7 +31,7 @@ async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Cannot /quit before you even /start")
 
-# 猜測邏輯
+# guessing
 async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     guess = update.message.text.strip()
