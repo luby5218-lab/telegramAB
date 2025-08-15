@@ -3,21 +3,16 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from telegram.request import HTTPXRequest
 import random
 import os
-from flask import Flask, request as flask_request
 from keep_alive import keep_alive  # 保活
 from httpx import Timeout
 
 VERSION = "v1.0.5"
 user_games = {}
 
-# 產生隨機不重複的四位數
+# 隨機產生 4 位不重複數字
 def generate_answer():
-    digits = list(range(0, 10))
-    ans = ""
-    for _ in range(4):
-        a = random.choice(digits)
-        ans += str(a)
-        digits.remove(a)
+    digits = list(range(10))
+    ans = "".join(str(digits.pop(random.randrange(len(digits)))) for _ in range(4))
     return ans
 
 # /start
@@ -31,9 +26,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in user_games:
-        answer = user_games[user_id]
+        answer = user_games.pop(user_id)
         await update.message.reply_text(f"It's {answer}\ntry harder dog")
-        del user_games[user_id]
     else:
         await update.message.reply_text("Cannot /quit before you even /start")
 
@@ -52,18 +46,16 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("4 digits dog")
         return
 
-    for i in range(3):
-        for j in range(i+1, 4):
-            if guess[i] == guess[j]:
-                await update.message.reply_text("dog that's cheating")
-                return
+    if len(set(guess)) != 4:
+        await update.message.reply_text("dog that's cheating")
+        return
 
-    A = sum(1 for i in range(4) if answer[i] == guess[i])
-    B = sum(1 for i in range(4) for j in range(4) if i != j and answer[i] == guess[j])
+    A = sum(answer[i] == guess[i] for i in range(4))
+    B = sum(answer[i] != guess[i] and answer[i] in guess for i in range(4))
 
     if A == 4:
         await update.message.reply_text(f"Yeah {answer}")
-        del user_games[user_id]
+        user_games.pop(user_id)
     else:
         await update.message.reply_text(f"{A}A{B}B")
 
@@ -71,22 +63,13 @@ async def guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def version(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Current bot version: {VERSION}")
 
-# Flask server (只做 keep alive 用)
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "Bot is running!"
-
 if __name__ == "__main__":
-    keep_alive()
+    keep_alive()  # 啟動 ping 自己，非阻塞
 
     TOKEN = os.getenv("TOKEN")
     RENDER_URL = os.getenv("RENDER_URL")
 
-    timeout = Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0)
-    request = HTTPXRequest(connection_pool_size=50, pool_timeout=30.0)
-
+    request = HTTPXRequest(connection_pool_size=20, pool_timeout=30.0)
     application = Application.builder().token(TOKEN).request(request).build()
 
     application.add_handler(CommandHandler("start", start))
@@ -94,10 +77,9 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("version", version))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guess))
 
-    # 直接啟動 webhook
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
-        url_path="",
-        webhook_url=f"{RENDER_URL}",
+        url_path=TOKEN,
+        webhook_url=f"{RENDER_URL}/{TOKEN}",
     )
